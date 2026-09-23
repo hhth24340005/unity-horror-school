@@ -12,22 +12,124 @@ internal static class Main
     CancellationToken ct
   )
   {
-    var view =
-      await Addressables
-      .InstantiateAsync("TitleView", parent)
-      .WithCancellation(ct)
-      .ContinueWith(it => it.GetComponent<TitleView>());
-    await view.AwaitStart(ct);
+    await PlayTitleAsync(parent, ct);
+    await PlayGameAsync(parent, ct);
+  }
+
+  private static async UniTask PlayTitleAsync(
+    Transform root,
+    CancellationToken ct
+  )
+  {
+    var parent = new GameObject("Title").transform;
+    parent.SetParent(root);
+    try
+    {
+      var view =
+        await Addressables
+          .InstantiateAsync("TitleView", parent)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<TitleView>());
+      await view.AwaitStart(ct);
+    }
+    finally
+    {
+      Object.Destroy(parent.gameObject);
+    }
+  }
+
+  private static async UniTask PlayGameAsync(
+    Transform root,
+    CancellationToken ct
+  )
+  {
+    var parent = new GameObject("Game").transform;
+    parent.SetParent(root);
+
+    var input = new InputActions();
+    input.Enable();
+
+    try
+    {
+      var player =
+        await Addressables
+          .InstantiateAsync("Player", parent)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<Player>());
+
+      var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+      try
+      {
+        await UniTask.WhenAny(
+          player.UseMovementAsync(input.Player, cts.Token),
+          player.UseRotationAsync(input.Player, cts.Token)
+        );
+      }
+      finally
+      {
+        cts.Cancel();
+      }
+    }
+    finally
+    {
+      input.Disable();
+      Object.Destroy(parent.gameObject);
+    }
+  }
+
+  private static async UniTask UseMovementAsync(
+    this Player player,
+    InputActions.PlayerActions input,
+    CancellationToken ct
+  )
+  {
+    while (true)
+    {
+      Vector2 moveDelta;
+      if (input.Move.IsPressed())
+      {
+        moveDelta = input.Move.ReadValue<Vector2>();
+      }
+      else
+      {
+        var tcs = new UniTaskCompletionSource<Vector2>();
+        input.Move.performed +=
+          ctx => { tcs.TrySetResult(ctx.ReadValue<Vector2>()); };
+        ct.Register(() => tcs.TrySetCanceled());
+        moveDelta = await tcs.Task;
+      }
+      player.Move(new Vector2(moveDelta.x, moveDelta.y));
+      await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+    }
+    // ReSharper disable once FunctionNeverReturns
+  }
+
+  private static async UniTask UseRotationAsync(
+    this Player player,
+    InputActions.PlayerActions input,
+    CancellationToken ct
+  )
+  {
+    while (true)
+    {
+      var tcs = new UniTaskCompletionSource<Vector2>();
+      input.Look.performed +=
+        ctx => { tcs.TrySetResult(ctx.ReadValue<Vector2>()); };
+      ct.Register(() => tcs.TrySetCanceled());
+      var mouseDelta = await tcs.Task;
+      player.LookAround(new Vector2(mouseDelta.x, -mouseDelta.y));
+    }
+    // ReSharper disable once FunctionNeverReturns
   }
 
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
   private static async void Boot()
   {
-    var go = new GameObject("Root");
+    var root = new GameObject("Root");
     try
     {
       await MainAsync(
-        go.transform,
+        root.transform,
         Application.exitCancellationToken
       );
     }
@@ -38,7 +140,7 @@ internal static class Main
     }
     finally
     {
-      Object.Destroy(go);
+      Object.Destroy(root.gameObject);
 #if  UNITY_EDITOR
       UnityEditor.EditorApplication.isPlaying = false;
 #endif
