@@ -57,18 +57,13 @@ internal static class Main
           .WithCancellation(ct)
           .ContinueWith(it => it.GetComponent<Player>());
 
-      var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-      try
-      {
-        await UniTask.WhenAny(
-          player.UseMovementAsync(input.Player, cts.Token),
-          player.UseRotationAsync(input.Player, cts.Token)
-        );
-      }
-      finally
-      {
-        cts.Cancel();
-      }
+      await Race(
+        ct,
+        it => player.UseMovementAsync(input.Player, it),
+        it => player.UseRotationAsync(input.Player, it),
+        it => UniTask.Delay(5000, cancellationToken: it)
+      );
+      await UniTask.Never(ct);
     }
     finally
     {
@@ -95,7 +90,7 @@ internal static class Main
         var tcs = new UniTaskCompletionSource<Vector2>();
         input.Move.performed +=
           ctx => { tcs.TrySetResult(ctx.ReadValue<Vector2>()); };
-        ct.Register(() => tcs.TrySetCanceled());
+        await using var _ = ct.Register(() => tcs.TrySetCanceled());
         moveDelta = await tcs.Task;
       }
       player.Move(new Vector2(moveDelta.x, moveDelta.y));
@@ -115,7 +110,7 @@ internal static class Main
       var tcs = new UniTaskCompletionSource<Vector2>();
       input.Look.performed +=
         ctx => { tcs.TrySetResult(ctx.ReadValue<Vector2>()); };
-      ct.Register(() => tcs.TrySetCanceled());
+      await using var _ = ct.Register(() => tcs.TrySetCanceled());
       var mouseDelta = await tcs.Task;
       player.LookAround(new Vector2(mouseDelta.x, -mouseDelta.y));
     }
@@ -144,6 +139,25 @@ internal static class Main
 #if  UNITY_EDITOR
       UnityEditor.EditorApplication.isPlaying = false;
 #endif
+    }
+  }
+
+
+  private static async UniTask Race(
+    CancellationToken ct,
+    params Func<CancellationToken, UniTask>[] tasks
+  )
+  {
+    var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+    try
+    {
+      await UniTask.WhenAny(
+        tasks.Select(task => task(cts.Token))
+      );
+    }
+    finally
+    {
+      cts.Cancel();
     }
   }
 }
