@@ -46,6 +46,8 @@ public sealed class Player : MonoBehaviour
 
   private float _baseFov;
 
+  public Collider Hitbox => hitbox;
+
   private void Awake()
   {
     _baseFov = camera.fieldOfView;
