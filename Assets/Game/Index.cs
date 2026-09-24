@@ -2,6 +2,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.InputSystem;
 
 public static class Game
 {
@@ -42,21 +43,8 @@ public static class Game
   {
     while (true)
     {
-      Vector2 moveDelta;
-      if (input.Move.IsPressed())
-      {
-        moveDelta = input.Move.ReadValue<Vector2>();
-      }
-      else
-      {
-        var tcs = new UniTaskCompletionSource<Vector2>();
-        input.Move.performed +=
-          ctx => { tcs.TrySetResult(ctx.ReadValue<Vector2>()); };
-        await using var _ = ct.Register(() => tcs.TrySetCanceled());
-        moveDelta = await tcs.Task;
-      }
+      var moveDelta = await input.Move.Await<Vector2>(ct);
       player.Move(moveDelta);
-      await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
     }
     // ReSharper disable once FunctionNeverReturns
   }
@@ -69,13 +57,38 @@ public static class Game
   {
     while (true)
     {
-      var tcs = new UniTaskCompletionSource<Vector2>();
-      input.Look.performed +=
-        ctx => { tcs.TrySetResult(ctx.ReadValue<Vector2>()); };
-      await using var _ = ct.Register(() => tcs.TrySetCanceled());
-      var mouseDelta = await tcs.Task;
+      var mouseDelta = await input.Look.Await<Vector2>(ct);
       player.LookAround(new Vector2(mouseDelta.x, -mouseDelta.y));
     }
     // ReSharper disable once FunctionNeverReturns
+  }
+
+  private static async UniTask<R> Await<R>(
+    this InputAction input,
+    CancellationToken ct
+  ) where R : struct
+  {
+    R ret;
+    if (input.IsPressed())
+    {
+      ret = input.ReadValue<R>();
+      await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+    }
+    else
+    {
+      ret = await Tasks.SuspendCancellableCoroutine<R>(ct, complete =>
+      {
+        input.performed += OnPerform;
+        return;
+
+        void OnPerform(InputAction.CallbackContext ctx)
+        {
+          complete(ctx.ReadValue<R>());
+          input.performed -= OnPerform;
+        }
+      });
+    }
+
+    return ret;
   }
 }

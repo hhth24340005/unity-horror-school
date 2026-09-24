@@ -21,4 +21,15 @@ public static class Tasks
       cts.Cancel();
     }
   }
+
+  public static async UniTask<R> SuspendCancellableCoroutine<R>(
+    CancellationToken ct,
+    Action<Action<R>> block
+  )
+  {
+    var tcs = new UniTaskCompletionSource<R>();
+    await using var _ = ct.Register(() => tcs.TrySetCanceled());
+    block(result => tcs.TrySetResult(result));
+    return await tcs.Task;
+  }
 }
