@@ -45,7 +45,7 @@ public static class Game
   {
     while (true)
     {
-      var moveDelta = await input.Await<Vector2>(ct);
+      var moveDelta = await input.AwaitPressed<Vector2>(ct);
       player.Move(moveDelta);
     }
     // ReSharper disable once FunctionNeverReturns
@@ -63,7 +63,7 @@ public static class Game
       Cursor.lockState = CursorLockMode.Locked;
       while (true)
       {
-        var mouseDelta = await input.Await<Vector2>(ct);
+        var mouseDelta = await input.AwaitPressed<Vector2>(ct);
         player.LookAround(new Vector2(mouseDelta.x, -mouseDelta.y));
       }
     }
@@ -83,56 +83,9 @@ public static class Game
   {
     while (true)
     {
-      await input.Await(ct);
+      await input.AwaitPerformed(ct);
       await player.InteractItemOnSight(inventory, ct);
     }
     // ReSharper disable once FunctionNeverReturns
-  }
-
-  private static async UniTask Await(
-    this InputAction input,
-    CancellationToken ct
-  )
-  {
-    _ = await Tasks.SuspendCancellableCoroutine<int>(ct, complete =>
-    {
-      input.performed += OnPerform;
-      return;
-
-      void OnPerform(InputAction.CallbackContext ctx)
-      {
-        complete(0);
-        input.performed -= OnPerform;
-      }
-    });
-  }
-
-  private static async UniTask<R> Await<R>(
-    this InputAction input,
-    CancellationToken ct
-  ) where R : struct
-  {
-    R ret;
-    if (input.IsPressed())
-    {
-      ret = input.ReadValue<R>();
-      await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
-    }
-    else
-    {
-      ret = await Tasks.SuspendCancellableCoroutine<R>(ct, complete =>
-      {
-        input.performed += OnPerform;
-        return;
-
-        void OnPerform(InputAction.CallbackContext ctx)
-        {
-          complete(ctx.ReadValue<R>());
-          input.performed -= OnPerform;
-        }
-      });
-    }
-
-    return ret;
   }
 }
