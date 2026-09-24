@@ -55,12 +55,21 @@ public static class Game
     CancellationToken ct
   )
   {
-    while (true)
+    try
     {
-      var mouseDelta = await input.Look.Await<Vector2>(ct);
-      player.LookAround(new Vector2(mouseDelta.x, -mouseDelta.y));
+      Cursor.visible = false;
+      Cursor.lockState = CursorLockMode.Locked;
+      while (true)
+      {
+        var mouseDelta = await input.Look.Await<Vector2>(ct);
+        player.LookAround(new Vector2(mouseDelta.x, -mouseDelta.y));
+      }
     }
-    // ReSharper disable once FunctionNeverReturns
+    finally
+    {
+      Cursor.visible = true;
+      Cursor.lockState = CursorLockMode.None;
+    }
   }
 
   private static async UniTask<R> Await<R>(
