@@ -271,7 +271,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa4eb7e0f96ad41d19288a0517ee475b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
-  hitbox: {fileID: 2701848052083288889}
+  rb: {fileID: 2701848052083288889}
   camera: {fileID: 829022419453657509}
   force: 2000
   movementSpeedMetersPerSecond: 3

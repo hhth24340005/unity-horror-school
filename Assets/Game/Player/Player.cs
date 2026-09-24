@@ -3,7 +3,7 @@ using UnityEngine;
 public sealed class Player : MonoBehaviour
 {
   [SerializeField]
-  private Rigidbody hitbox;
+  private Rigidbody rb;
 
   [SerializeField]
   private Camera camera;
@@ -21,7 +21,7 @@ public sealed class Player : MonoBehaviour
 
   private void Awake()
   {
-    hitbox.maxLinearVelocity  = movementSpeedMetersPerSecond;
+    rb.maxLinearVelocity = movementSpeedMetersPerSecond;
   }
 
   public void Move(Vector2 xzDelta)
@@ -29,7 +29,7 @@ public sealed class Player : MonoBehaviour
     var yaw = camera.transform.rotation.eulerAngles.y;
     var quaternion = Quaternion.Euler(0, yaw, 0);
     var moveDelta = quaternion * new Vector3(xzDelta.x, 0f, xzDelta.y);
-    hitbox.AddForce(moveDelta * force);
+    rb.AddForce(moveDelta * force);
   }
 
   public void LookAround(Vector2 delta)
