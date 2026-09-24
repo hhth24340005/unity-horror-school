@@ -37,13 +37,13 @@ public static class Game
 
   private static async UniTask UseMovementAsync(
     this Player player,
-    InputActions.PlayerActions input,
+    InputAction input,
     CancellationToken ct
   )
   {
     while (true)
     {
-      var moveDelta = await input.Move.Await<Vector2>(ct);
+      var moveDelta = await input.Await<Vector2>(ct);
       player.Move(moveDelta);
     }
     // ReSharper disable once FunctionNeverReturns
@@ -51,7 +51,7 @@ public static class Game
 
   private static async UniTask UseRotationAsync(
     this Player player,
-    InputActions.PlayerActions input,
+    InputAction input,
     CancellationToken ct
   )
   {
@@ -61,7 +61,7 @@ public static class Game
       Cursor.lockState = CursorLockMode.Locked;
       while (true)
       {
-        var mouseDelta = await input.Look.Await<Vector2>(ct);
+        var mouseDelta = await input.Await<Vector2>(ct);
         player.LookAround(new Vector2(mouseDelta.x, -mouseDelta.y));
       }
     }
