@@ -276,6 +276,10 @@ MonoBehaviour:
   force: 2000
   movementSpeedMetersPerSecond: 3
   mouseSensitivity: {x: 0.66, y: 0.66}
+  interactDistance: Infinity
+  interactLayerMask:
+    serializedVersion: 2
+    m_Bits: 128
 --- !u!54 &2701848052083288889
 Rigidbody:
   m_ObjectHideFlags: 0

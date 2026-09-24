@@ -22,11 +22,13 @@ public static class Game
           .InstantiateAsync("Player", parent)
           .WithCancellation(ct)
           .ContinueWith(it => it.GetComponent<Player>());
+      var inventory = Inventory.OfCapacity(5);
 
       await Tasks.Race(
         ct,
-        it => player.UseMovementAsync(input.Player, it),
-        it => player.UseRotationAsync(input.Player, it)
+        it => player.UseMovementAsync(input.Player.Move, it),
+        it => player.UseRotationAsync(input.Player.Look, it),
+        it => player.UseInteractorAsync(input.Player.Interact, inventory, it)
       );
     }
     finally
@@ -70,6 +72,39 @@ public static class Game
       Cursor.visible = true;
       Cursor.lockState = CursorLockMode.None;
     }
+  }
+
+  private static async UniTask UseInteractorAsync(
+    this Player player,
+    InputAction input,
+    Inventory inventory,
+    CancellationToken ct
+  )
+  {
+    while (true)
+    {
+      await input.Await(ct);
+      await player.InteractItemOnSight(inventory, ct);
+    }
+    // ReSharper disable once FunctionNeverReturns
+  }
+
+  private static async UniTask Await(
+    this InputAction input,
+    CancellationToken ct
+  )
+  {
+    _ = await Tasks.SuspendCancellableCoroutine<int>(ct, complete =>
+    {
+      input.performed += OnPerform;
+      return;
+
+      void OnPerform(InputAction.CallbackContext ctx)
+      {
+        complete(0);
+        input.performed -= OnPerform;
+      }
+    });
   }
 
   private static async UniTask<R> Await<R>(

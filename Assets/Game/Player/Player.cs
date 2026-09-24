@@ -1,3 +1,5 @@
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public sealed class Player : MonoBehaviour
@@ -16,6 +18,12 @@ public sealed class Player : MonoBehaviour
 
   [SerializeField]
   private Vector2 mouseSensitivity = Vector2.one;
+
+  [SerializeField]
+  private float interactDistance = Mathf.Infinity;
+
+  [SerializeField]
+  private LayerMask interactLayerMask;
 
   private const float Epsilon = 1e-5f;
 
@@ -45,5 +53,29 @@ public sealed class Player : MonoBehaviour
     pitch = Mathf.Clamp(pitch, -90 + Epsilon, 90 - Epsilon);
     var next = new Vector3(pitch, original.y + eulerDelta.y, original.z);
     camera.transform.eulerAngles = next;
+  }
+
+  public async UniTask InteractItemOnSight(
+    Inventory inventory,
+    CancellationToken ct
+  )
+  {
+    if (
+      !Physics.Raycast(
+        camera.transform.position,
+        camera.transform.forward,
+        out var hit,
+        interactDistance,
+        interactLayerMask
+      )
+    )
+    {
+      return;
+    }
+    if (!hit.collider.TryGetComponent<Interactable>(out var item))
+    {
+      return;
+    }
+    await item.InteractAsync(inventory, ct);
   }
 }
