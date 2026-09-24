@@ -1,9 +1,7 @@
-using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using Object = UnityEngine.Object;
 
 public static class Game
 {
@@ -12,8 +10,7 @@ public static class Game
     CancellationToken ct
   )
   {
-    var parent = new GameObject("Game").transform;
-    parent.SetParent(root);
+    using var parent = root.UseChild("Game");
 
     var input = new InputActions();
     input.Enable();
@@ -34,7 +31,6 @@ public static class Game
     finally
     {
       input.Disable();
-      Object.Destroy(parent.gameObject);
     }
   }
 
@@ -59,7 +55,7 @@ public static class Game
         await using var _ = ct.Register(() => tcs.TrySetCanceled());
         moveDelta = await tcs.Task;
       }
-      player.Move(new Vector2(moveDelta.x, moveDelta.y));
+      player.Move(moveDelta);
       await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
     }
     // ReSharper disable once FunctionNeverReturns

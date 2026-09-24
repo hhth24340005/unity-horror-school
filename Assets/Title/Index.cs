@@ -10,20 +10,12 @@ public static class Title
     CancellationToken ct
   )
   {
-    var parent = new GameObject("Title").transform;
-    parent.SetParent(root);
-    try
-    {
-      var view =
-        await Addressables
-          .InstantiateAsync("TitleView", parent)
-          .WithCancellation(ct)
-          .ContinueWith(it => it.GetComponent<TitleView>());
-      await view.AwaitStart(ct);
-    }
-    finally
-    {
-      Object.Destroy(parent.gameObject);
-    }
+    using var parent = root.UseChild("Title");
+    var view =
+      await Addressables
+        .InstantiateAsync("TitleView", parent)
+        .WithCancellation(ct)
+        .ContinueWith(it => it.GetComponent<TitleView>());
+    await view.AwaitStart(ct);
   }
 }
