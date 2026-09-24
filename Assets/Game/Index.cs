@@ -26,7 +26,11 @@ public static class Game
 
       await Tasks.Race(
         ct,
-        it => player.UseMovementAsync(input.Player.Move, it),
+        it => player.UseMovementAsync(
+          input.Player.Move,
+          input.Player.Sprint,
+          it
+        ),
         it => player.UseRotationAsync(input.Player.Look, it),
         it => player.UseInteractorAsync(input.Player.Interact, inventory, it)
       );
@@ -39,15 +43,22 @@ public static class Game
 
   private static async UniTask UseMovementAsync(
     this Player player,
-    InputAction input,
+    InputAction move,
+    InputAction sprint,
     CancellationToken ct
   )
   {
     while (true)
     {
-      if (input.IsPressed())
+      if (move.IsPressed())
       {
-        player.TryMove(input.ReadValue<Vector2>());
+        var delta = move.ReadValue<Vector2>();
+        if (delta.y > 0 && sprint.IsPressed())
+        {
+          await player.SprintAsync(move, ct);
+          continue;
+        }
+        player.TryMove(delta);
         await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
       }
       else if (player.TryMove(Vector2.zero))
@@ -56,10 +67,31 @@ public static class Game
       }
       else
       {
-        await input.AwaitPerformed(ct);
+        await move.AwaitPerformed(ct);
       }
     }
     // ReSharper disable once FunctionNeverReturns
+  }
+
+  private static async UniTask SprintAsync(
+    this Player player,
+    InputAction move,
+    CancellationToken ct
+  )
+  {
+    player.SetSprintFov(true);
+    try
+    {
+      while (move.ReadValue<Vector2>() is { y: > 0 } delta)
+      {
+        player.TryMove(delta, sprinting: true);
+        await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+      }
+    }
+    finally
+    {
+      player.SetSprintFov(false);
+    }
   }
 
   private static async UniTask UseRotationAsync(

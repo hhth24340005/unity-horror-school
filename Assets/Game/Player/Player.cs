@@ -1,5 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using DG.Tweening;
 using UnityEngine;
 
 public sealed class Player : MonoBehaviour
@@ -20,6 +21,19 @@ public sealed class Player : MonoBehaviour
   private float movementSpeedMetersPerSecond = 1f;
 
   [SerializeField]
+  private float sprintMultiplier = 1.3f;
+
+  [SerializeField]
+  private float sprintFovMultiplier = 1.15f;
+
+  [SerializeField]
+  private float sprintFovDurationSeconds = 0.2f;
+
+  [SerializeField]
+  private AnimationCurve sprintFovEase =
+    AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+  [SerializeField]
   private Vector2 mouseSensitivity = Vector2.one;
 
   [SerializeField]
@@ -30,10 +44,15 @@ public sealed class Player : MonoBehaviour
 
   private const float Epsilon = 1e-5f;
 
+  private float _baseFov;
+
   private void Awake()
   {
+    _baseFov = camera.fieldOfView;
+    var maxFov = _baseFov * sprintFovMultiplier;
+
     var near = camera.nearClipPlane;
-    var halfH = near * Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+    var halfH = near * Mathf.Tan(maxFov * 0.5f * Mathf.Deg2Rad);
     var halfW = halfH * camera.aspect;
     var nearCornerDistance = new Vector3(halfW, halfH, near).magnitude;
 
@@ -51,13 +70,13 @@ public sealed class Player : MonoBehaviour
     }
   }
 
-  public bool TryMove(Vector2 xzDelta)
+  public bool TryMove(Vector2 xzDelta, bool sprinting = false)
   {
     var yaw = camera.transform.rotation.eulerAngles.y;
     var quaternion = Quaternion.Euler(0, yaw, 0);
-    var target =
-      quaternion * new Vector3(xzDelta.x, 0f, xzDelta.y)
-      * movementSpeedMetersPerSecond;
+    var speed =
+      movementSpeedMetersPerSecond * (sprinting ? sprintMultiplier : 1f);
+    var target = quaternion * new Vector3(xzDelta.x, 0f, xzDelta.y) * speed;
 
     var v = rb.linearVelocity;
     var current = new Vector3(v.x, 0f, v.z);
@@ -72,6 +91,17 @@ public sealed class Player : MonoBehaviour
     }
     rb.AddForce(next - current, ForceMode.VelocityChange);
     return true;
+  }
+
+  public void SetSprintFov(bool sprinting)
+  {
+    camera.DOKill();
+    camera
+      .DOFieldOfView(
+        sprinting ? _baseFov * sprintFovMultiplier : _baseFov,
+        sprintFovDurationSeconds
+      )
+      .SetEase(sprintFovEase);
   }
 
   public void LookAround(Vector2 delta)

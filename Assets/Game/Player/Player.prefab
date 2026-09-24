@@ -276,6 +276,33 @@ MonoBehaviour:
   hitbox: {fileID: 1867193796691573440}
   accelerationMetersPerSecondSquared: 20
   movementSpeedMetersPerSecond: 3
+  sprintMultiplier: 1.5
+  sprintFovMultiplier: 1.2
+  sprintFovDurationSeconds: 0.2
+  sprintFovEase:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   mouseSensitivity: {x: 0.66, y: 0.66}
   interactDistance: Infinity
   interactLayerMask:
