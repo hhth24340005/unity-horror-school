@@ -11,6 +11,9 @@ public sealed class Player : MonoBehaviour
   private Camera camera;
 
   [SerializeField]
+  private Collider hitbox;
+
+  [SerializeField]
   private float accelerationMetersPerSecondSquared = 1f;
 
   [SerializeField]
@@ -26,6 +29,27 @@ public sealed class Player : MonoBehaviour
   private LayerMask interactLayerMask;
 
   private const float Epsilon = 1e-5f;
+
+  private void Awake()
+  {
+    var near = camera.nearClipPlane;
+    var halfH = near * Mathf.Tan(camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+    var halfW = halfH * camera.aspect;
+    var nearCornerDistance = new Vector3(halfW, halfH, near).magnitude;
+
+    var bounds = hitbox.bounds;
+    var offset = camera.transform.position - bounds.center;
+    var offsetXZ = new Vector2(offset.x, offset.z).magnitude;
+    var required = offsetXZ + nearCornerDistance;
+    var hitboxRadius = Mathf.Min(bounds.extents.x, bounds.extents.z);
+    if (hitboxRadius < required)
+    {
+      Debug.LogWarning(
+        $"hitbox radius ({hitboxRadius}) is smaller than required ({required}).",
+        this
+      );
+    }
+  }
 
   public bool TryMove(Vector2 xzDelta)
   {

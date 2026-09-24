@@ -64,7 +64,7 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0.1
   far clip plane: 1000
   field of view: 60
   orthographic: 0
@@ -154,8 +154,8 @@ Transform:
   m_GameObject: {fileID: 5958080033000048722}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0.85, z: 0}
+  m_LocalScale: {x: 0.5, y: 0.85, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7756802948895418482}
@@ -273,6 +273,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Player
   rb: {fileID: 2701848052083288889}
   camera: {fileID: 829022419453657509}
+  hitbox: {fileID: 1867193796691573440}
   accelerationMetersPerSecondSquared: 20
   movementSpeedMetersPerSecond: 3
   mouseSensitivity: {x: 0.66, y: 0.66}
