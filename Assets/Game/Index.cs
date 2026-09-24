@@ -1,8 +1,10 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.InputSystem;
+using AsyncFn = System.Func<System.Threading.CancellationToken, Cysharp.Threading.Tasks.UniTask>;
 
 public static class Game
 {
@@ -36,13 +38,10 @@ public static class Game
 
       await Tasks.Race(
         ct,
-        it => player.UseMovementAsync(
-          input.Player.Move,
-          input.Player.Sprint,
-          it
-        ),
-        it => player.UseRotationAsync(input.Player.Look, it),
-        it => player.UseInteractorAsync(input.Player.Interact, inventory, it)
+        player.UseControllerAsync(input.Player, inventory),
+        enemy.UseAnimation(),
+        enemy.AwaitCatch(player.Hitbox),
+        enemy.UseFollower(player.transform)
       );
     }
     finally
@@ -51,37 +50,57 @@ public static class Game
     }
   }
 
-  private static async UniTask UseMovementAsync(
+  private static AsyncFn UseControllerAsync(
+    this Player player,
+    InputActions.PlayerActions input,
+    Inventory inventory
+  ) =>
+    async ct =>
+    {
+      while (true)
+      {
+        await Tasks.Race(
+          ct,
+          player.UseMovementAsync(input.Move, input.Sprint),
+          player.UseRotationAsync(input.Look),
+          player.UseInteractorAsync(input.Interact, inventory)
+        );
+      }
+      // ReSharper disable once FunctionNeverReturns
+    };
+
+  private static AsyncFn UseMovementAsync(
     this Player player,
     InputAction move,
-    InputAction sprint,
-    CancellationToken ct
-  )
-  {
-    while (true)
+    InputAction sprint
+  ) =>
+    async ct =>
     {
-      if (move.IsPressed())
+      while (true)
       {
-        var delta = move.ReadValue<Vector2>();
-        if (delta.y > 0 && sprint.IsPressed())
+        if (move.IsPressed())
         {
-          await player.SprintAsync(move, ct);
-          continue;
+          var delta = move.ReadValue<Vector2>();
+          if (delta.y > 0 && sprint.IsPressed())
+          {
+            await player.SprintAsync(move, ct);
+            continue;
+          }
+
+          player.TryMove(delta);
+          await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
         }
-        player.TryMove(delta);
-        await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+        else if (player.TryMove(Vector2.zero))
+        {
+          await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+        }
+        else
+        {
+          await move.AwaitPerformed(ct);
+        }
       }
-      else if (player.TryMove(Vector2.zero))
-      {
-        await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
-      }
-      else
-      {
-        await move.AwaitPerformed(ct);
-      }
-    }
-    // ReSharper disable once FunctionNeverReturns
-  }
+      // ReSharper disable once FunctionNeverReturns
+    };
 
   private static async UniTask SprintAsync(
     this Player player,
@@ -104,41 +123,41 @@ public static class Game
     }
   }
 
-  private static async UniTask UseRotationAsync(
+  private static AsyncFn UseRotationAsync(
+    this Player player,
+    InputAction input
+  ) =>
+    async ct =>
+    {
+      try
+      {
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        while (true)
+        {
+          var mouseDelta = await input.AwaitPressed<Vector2>(ct);
+          player.LookAround(new Vector2(mouseDelta.x, -mouseDelta.y));
+        }
+      }
+      finally
+      {
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+      }
+    };
+
+  private static AsyncFn UseInteractorAsync(
     this Player player,
     InputAction input,
-    CancellationToken ct
-  )
-  {
-    try
+    Inventory inventory
+  ) =>
+    async ct =>
     {
-      Cursor.visible = false;
-      Cursor.lockState = CursorLockMode.Locked;
       while (true)
       {
-        var mouseDelta = await input.AwaitPressed<Vector2>(ct);
-        player.LookAround(new Vector2(mouseDelta.x, -mouseDelta.y));
+        await input.AwaitPerformed(ct);
+        await player.InteractItemOnSight(inventory, ct);
       }
-    }
-    finally
-    {
-      Cursor.visible = true;
-      Cursor.lockState = CursorLockMode.None;
-    }
-  }
-
-  private static async UniTask UseInteractorAsync(
-    this Player player,
-    InputAction input,
-    Inventory inventory,
-    CancellationToken ct
-  )
-  {
-    while (true)
-    {
-      await input.AwaitPerformed(ct);
-      await player.InteractItemOnSight(inventory, ct);
-    }
-    // ReSharper disable once FunctionNeverReturns
-  }
+      // ReSharper disable once FunctionNeverReturns
+    };
 }

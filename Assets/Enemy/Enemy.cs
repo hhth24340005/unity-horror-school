@@ -1,8 +1,9 @@
-using System.Threading;
 using Cysharp.Threading.Tasks;
 using Cysharp.Threading.Tasks.Linq;
 using Cysharp.Threading.Tasks.Triggers;
 using UnityEngine;
+using UnityEngine.AI;
+using AsyncFn = System.Func<System.Threading.CancellationToken, Cysharp.Threading.Tasks.UniTask>;
 
 public sealed class Enemy : MonoBehaviour
 {
@@ -12,28 +13,48 @@ public sealed class Enemy : MonoBehaviour
   private Animator animator;
 
   [SerializeField]
+  private NavMeshAgent agent;
+
+  [SerializeField]
   private Collider catchCollision;
 
-  private async void Start()
-  {
-    var ct = Application.exitCancellationToken;
-    while (true)
-    {
-      animator.SetFloat(Speed, 0);
-      await UniTask.Delay(2000, cancellationToken: ct);
-      animator.SetFloat(Speed, 2);
-      await UniTask.Delay(2000, cancellationToken: ct);
-      animator.SetFloat(Speed, 4);
-      await UniTask.Delay(2000, cancellationToken: ct);
-    }
-  }
+  public AsyncFn UseAnimation() =>
+    async ct => {
+      try
+      {
+        animator.speed = 1;
+        while (true)
+        {
+          await UniTask.Yield(PlayerLoopTiming.Update, ct);
+          animator.SetFloat(Speed, agent.speed);
+        }
+      }
+      finally
+      {
+        animator.speed = 0;
+      }
+    };
 
-  public async UniTask AwaitCatch(
-    Collider player,
-    CancellationToken ct
-  )
-  {
-    var trigger = catchCollision.GetAsyncTriggerEnterTrigger();
-    await trigger.FirstAsync(it => it == player, ct);
-  }
+  public AsyncFn UseFollower(Transform followee) =>
+    async ct =>
+    {
+      try
+      {
+        while (true)
+        {
+          await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+          agent.SetDestination(followee.position);
+        }
+      }
+      finally
+      {
+        agent.isStopped = true;
+      }
+    };
+
+  public AsyncFn AwaitCatch(Collider player) =>
+    async ct => {
+      var trigger = catchCollision.GetAsyncTriggerEnterTrigger();
+      await trigger.FirstAsync(it => it == player, ct);
+    };
 }
