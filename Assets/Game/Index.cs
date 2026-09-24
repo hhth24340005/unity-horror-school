@@ -45,8 +45,19 @@ public static class Game
   {
     while (true)
     {
-      var moveDelta = await input.AwaitPressed<Vector2>(ct);
-      player.Move(moveDelta);
+      if (input.IsPressed())
+      {
+        player.TryMove(input.ReadValue<Vector2>());
+        await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+      }
+      else if (player.TryMove(Vector2.zero))
+      {
+        await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+      }
+      else
+      {
+        await input.AwaitPerformed(ct);
+      }
     }
     // ReSharper disable once FunctionNeverReturns
   }

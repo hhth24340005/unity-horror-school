@@ -11,7 +11,7 @@ public sealed class Player : MonoBehaviour
   private Camera camera;
 
   [SerializeField]
-  private float force = 1f;
+  private float accelerationMetersPerSecondSquared = 1f;
 
   [SerializeField]
   private float movementSpeedMetersPerSecond = 1f;
@@ -27,17 +27,27 @@ public sealed class Player : MonoBehaviour
 
   private const float Epsilon = 1e-5f;
 
-  private void Awake()
-  {
-    rb.maxLinearVelocity = movementSpeedMetersPerSecond;
-  }
-
-  public void Move(Vector2 xzDelta)
+  public bool TryMove(Vector2 xzDelta)
   {
     var yaw = camera.transform.rotation.eulerAngles.y;
     var quaternion = Quaternion.Euler(0, yaw, 0);
-    var moveDelta = quaternion * new Vector3(xzDelta.x, 0f, xzDelta.y);
-    rb.AddForce(moveDelta * force);
+    var target =
+      quaternion * new Vector3(xzDelta.x, 0f, xzDelta.y)
+      * movementSpeedMetersPerSecond;
+
+    var v = rb.linearVelocity;
+    var current = new Vector3(v.x, 0f, v.z);
+    var next = Vector3.MoveTowards(
+      current,
+      target,
+      accelerationMetersPerSecondSquared * Time.fixedDeltaTime
+    );
+    if (next == current)
+    {
+      return false;
+    }
+    rb.AddForce(next - current, ForceMode.VelocityChange);
+    return true;
   }
 
   public void LookAround(Vector2 delta)

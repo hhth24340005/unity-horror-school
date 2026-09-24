@@ -273,7 +273,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Player
   rb: {fileID: 2701848052083288889}
   camera: {fileID: 829022419453657509}
-  force: 2000
+  accelerationMetersPerSecondSquared: 20
   movementSpeedMetersPerSecond: 3
   mouseSensitivity: {x: 0.66, y: 0.66}
   interactDistance: Infinity
