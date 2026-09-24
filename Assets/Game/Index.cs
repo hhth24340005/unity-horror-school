@@ -23,6 +23,16 @@ public static class Game
           .WithCancellation(ct)
           .ContinueWith(it => it.GetComponent<Player>());
       var inventory = Inventory.OfCapacity(5);
+      var enemy =
+        await Addressables
+          .InstantiateAsync("Enemy", parent)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<Enemy>());
+      enemy.transform.position = new Vector3
+      {
+        x = 3.5f,
+        z = -4
+      };
 
       await Tasks.Race(
         ct,
