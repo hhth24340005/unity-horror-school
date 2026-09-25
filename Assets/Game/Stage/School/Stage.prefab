@@ -466,6 +466,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: Body
       objectReference: {fileID: 0}
+    - target: {fileID: 1230478650630497774, guid: 84ff3d4e88fbba041b8b17f9a0bcb394, type: 3}
+      propertyPath: m_Size.x
+      value: 11.267993
+      objectReference: {fileID: 0}
+    - target: {fileID: 1230478650630497774, guid: 84ff3d4e88fbba041b8b17f9a0bcb394, type: 3}
+      propertyPath: m_Size.z
+      value: 0.44000053
+      objectReference: {fileID: 0}
+    - target: {fileID: 1230478650630497774, guid: 84ff3d4e88fbba041b8b17f9a0bcb394, type: 3}
+      propertyPath: m_Center.x
+      value: -1.0010028
+      objectReference: {fileID: 0}
     - target: {fileID: 2254760044316813091, guid: 84ff3d4e88fbba041b8b17f9a0bcb394, type: 3}
       propertyPath: m_Material
       value: 
@@ -490,7 +502,8 @@ PrefabInstance:
       propertyPath: m_Material
       value: 
       objectReference: {fileID: 13400000, guid: 5fd735d15aff14943a38c4d46b3096af, type: 2}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1230478650630497774, guid: 84ff3d4e88fbba041b8b17f9a0bcb394, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 21115158091975824, guid: 84ff3d4e88fbba041b8b17f9a0bcb394, type: 3}
