@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.InputSystem;
 using AsyncFn = System.Func<System.Threading.CancellationToken, Cysharp.Threading.Tasks.UniTask>;
+using Random = UnityEngine.Random;
 
 public static class Game
 {
@@ -13,32 +14,37 @@ public static class Game
     CancellationToken ct
   )
   {
-    var parent =
+    var stage =
       await Addressables
         .InstantiateAsync("SchoolStage", root)
         .WithCancellation(ct)
-        .ContinueWith(it => it.transform);
+        .ContinueWith(it => it.GetComponent<Stage>());
 
     var input = new InputActions();
     input.Enable();
     try
     {
+      var playerSpawnPoint =
+        stage.PlayerSpawnPoints[
+          Random.Range(0, stage.PlayerSpawnPoints.Count)
+        ];
       var player =
         await Addressables
-          .InstantiateAsync("Player", parent)
+          .InstantiateAsync("Player", playerSpawnPoint)
           .WithCancellation(ct)
           .ContinueWith(it => it.GetComponent<Player>());
+
       var inventory = Inventory.OfCapacity(5);
+
+      var enemySpawnPoint =
+        stage.EnemySpawnPoints[
+          Random.Range(0, stage.EnemySpawnPoints.Count)
+        ];
       var enemy =
         await Addressables
-          .InstantiateAsync("Enemy", parent)
+          .InstantiateAsync("Enemy", enemySpawnPoint)
           .WithCancellation(ct)
           .ContinueWith(it => it.GetComponent<Enemy>());
-      enemy.transform.position = new Vector3
-      {
-        x = 3.5f,
-        z = -4
-      };
 
       await Tasks.Race(
         ct,
