@@ -76,30 +76,59 @@ public static class Game
   ) =>
     async ct =>
     {
-      while (true)
+      var walkSound =
+        await Addressables
+          .InstantiateAsync("WalkSound", player.transform)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<AudioSource>());
+      var sprintSound =
+        await Addressables
+          .InstantiateAsync("SprintSound", player.transform)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<AudioSource>());
+      try
       {
-        if (move.IsPressed())
+        while (true)
         {
-          var delta = move.ReadValue<Vector2>();
-          if (delta.y > 0 && sprint.IsPressed())
+          if (move.IsPressed())
           {
-            await player.SprintAsync(move, ct);
-            continue;
-          }
+            var delta = move.ReadValue<Vector2>();
+            if (delta.y > 0 && sprint.IsPressed())
+            {
+              walkSound?.Stop();
+              sprintSound?.Play();
+              try
+              {
+                await player.SprintAsync(move, ct);
+              }
+              finally
+              {
+                sprintSound?.Stop();
+              }
+              walkSound?.Play();
 
-          player.TryMove(delta);
-          await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
-        }
-        else if (player.TryMove(Vector2.zero))
-        {
-          await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
-        }
-        else
-        {
-          await move.AwaitPerformed(ct);
+              continue;
+            }
+
+            player.TryMove(delta);
+            await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+          }
+          else if (player.TryMove(Vector2.zero))
+          {
+            await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+          }
+          else
+          {
+            walkSound?.Stop();
+            await move.AwaitPerformed(ct);
+            walkSound?.Play();
+          }
         }
       }
-      // ReSharper disable once FunctionNeverReturns
+      finally
+      {
+        walkSound?.Stop();
+      }
     };
 
   private static async UniTask SprintAsync(
