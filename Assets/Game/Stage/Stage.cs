@@ -3,7 +3,6 @@ using System.Linq;
 using Cysharp.Threading.Tasks.Linq;
 using Cysharp.Threading.Tasks.Triggers;
 using UnityEngine;
-using AsyncFn = System.Func<System.Threading.CancellationToken, Cysharp.Threading.Tasks.UniTask>;
 
 public sealed class Stage : MonoBehaviour
 {
@@ -37,7 +36,7 @@ public sealed class Stage : MonoBehaviour
       .Shuffled()
       .Take(requiredKeys);
 
-  public AsyncFn AwaitExit(Collider player, Inventory inventory) =>
+  public Tasks.AsyncFn AwaitExit(Collider player, Inventory inventory) =>
     async ct =>
     {
       foreach (var i in Enumerable.Range(0, requiredKeys))

@@ -4,43 +4,47 @@ using Cysharp.Threading.Tasks;
 
 public static class Tasks
 {
-  public static async UniTask Race(
-    CancellationToken ct,
-    params Func<CancellationToken, UniTask>[] tasks
-  )
-  {
-    var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-    try
+  public static AsyncFn Race(
+    params AsyncFn[] tasks
+  ) =>
+    async ct =>
     {
-      await UniTask.WhenAny(
-        tasks.Select(task => task(cts.Token))
-      );
-    }
-    finally
-    {
-      cts.Cancel();
-    }
-  }
+      var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+      try
+      {
+        await UniTask.WhenAny(
+          tasks.Select(task => task(cts.Token))
+        );
+      }
+      finally
+      {
+        cts.Cancel();
+      }
+    };
 
-  public static async UniTask<R> Race<R>(
-    CancellationToken ct,
-    params Func<CancellationToken, UniTask<R>>[] tasks
-  )
-  {
-    var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-    try
+  public static AsyncFn<R> Race<R>(
+    params AsyncFn<R>[] tasks
+  ) =>
+    async ct =>
     {
-      var (_, ret) = await UniTask.WhenAny(
-        tasks.Select(task => task(cts.Token))
-      );
-      return ret;
-    }
-    finally
-    {
-      cts.Cancel();
-    }
-  }
+      var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+      try
+      {
+        var (_, ret) = await UniTask.WhenAny(
+          tasks.Select(task => task(cts.Token))
+        );
+        return ret;
+      }
+      finally
+      {
+        cts.Cancel();
+      }
+    };
 
+  public static UniTask SuspendCancellableCoroutine(
+    CancellationToken ct,
+    Action<Action> block
+  ) => SuspendCancellableCoroutine<int>(ct, c => block(() => c(0)));
 
   public static async UniTask<R> SuspendCancellableCoroutine<R>(
     CancellationToken ct,
@@ -52,4 +56,7 @@ public static class Tasks
     block(result => tcs.TrySetResult(result));
     return await tcs.Task;
   }
+
+  public delegate UniTask AsyncFn(CancellationToken ct);
+  public delegate UniTask<T> AsyncFn<T>(CancellationToken ct);
 }

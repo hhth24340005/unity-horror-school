@@ -10,14 +10,14 @@ public static class InputActionsEx
   )
   {
     await UniTask.Yield(PlayerLoopTiming.Update, ct);
-    _ = await Tasks.SuspendCancellableCoroutine<int>(ct, complete =>
+    await Tasks.SuspendCancellableCoroutine(ct, complete =>
     {
       input.performed += OnPerform;
       return;
 
       void OnPerform(InputAction.CallbackContext ctx)
       {
-        complete(0);
+        complete();
         input.performed -= OnPerform;
       }
     });

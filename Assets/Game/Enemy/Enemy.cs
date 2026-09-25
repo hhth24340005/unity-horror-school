@@ -3,7 +3,6 @@ using Cysharp.Threading.Tasks.Linq;
 using Cysharp.Threading.Tasks.Triggers;
 using UnityEngine;
 using UnityEngine.AI;
-using AsyncFn = System.Func<System.Threading.CancellationToken, Cysharp.Threading.Tasks.UniTask>;
 
 public sealed class Enemy : MonoBehaviour
 {
@@ -18,7 +17,7 @@ public sealed class Enemy : MonoBehaviour
   [SerializeField]
   private Collider catchCollision;
 
-  public AsyncFn UseAnimation() =>
+  public Tasks.AsyncFn UseAnimation() =>
     async ct => {
       try
       {
@@ -35,7 +34,7 @@ public sealed class Enemy : MonoBehaviour
       }
     };
 
-  public AsyncFn UseFollower(Transform followee) =>
+  public Tasks.AsyncFn UseFollower(Transform followee) =>
     async ct =>
     {
       try
@@ -52,7 +51,7 @@ public sealed class Enemy : MonoBehaviour
       }
     };
 
-  public AsyncFn AwaitCatch(Collider player) =>
+  public Tasks.AsyncFn AwaitCatch(Collider player) =>
     async ct => {
       var trigger = catchCollision.GetAsyncTriggerEnterTrigger();
       await trigger.FirstAsync(it => it == player, ct);

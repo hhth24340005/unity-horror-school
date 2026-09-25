@@ -1,13 +1,9 @@
-using System;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.InputSystem;
-using AsyncFn = System.Func<System.Threading.CancellationToken, Cysharp.Threading.Tasks.UniTask>;
-using Random = UnityEngine.Random;
 
 public static class Game
 {
@@ -50,13 +46,12 @@ public static class Game
         ).ToImmutableArray();
 
       await Tasks.Race(
-        ct,
         player.UseControllerAsync(input.Player, inventory),
         stage.AwaitExit(player.Hitbox, inventory),
         enemy.UseAnimation(),
         enemy.AwaitCatch(player.Hitbox),
         enemy.UseFollower(player.transform)
-      );
+      )(ct);
     }
     finally
     {
@@ -64,7 +59,7 @@ public static class Game
     }
   }
 
-  private static AsyncFn UseControllerAsync(
+  private static Tasks.AsyncFn UseControllerAsync(
     this Player player,
     InputActions.PlayerActions input,
     Inventory inventory
@@ -74,16 +69,15 @@ public static class Game
       while (true)
       {
         await Tasks.Race(
-          ct,
           player.UseMovementAsync(input.Move, input.Sprint),
           player.UseRotationAsync(input.Look),
           player.UseInteractorAsync(input.Interact, inventory)
-        );
+        )(ct);
       }
       // ReSharper disable once FunctionNeverReturns
     };
 
-  private static AsyncFn UseMovementAsync(
+  private static Tasks.AsyncFn UseMovementAsync(
     this Player player,
     InputAction move,
     InputAction sprint
@@ -166,7 +160,7 @@ public static class Game
     }
   }
 
-  private static AsyncFn UseRotationAsync(
+  private static Tasks.AsyncFn UseRotationAsync(
     this Player player,
     InputAction input
   ) =>
@@ -189,7 +183,7 @@ public static class Game
       }
     };
 
-  private static AsyncFn UseInteractorAsync(
+  private static Tasks.AsyncFn UseInteractorAsync(
     this Player player,
     InputAction input,
     Inventory inventory
