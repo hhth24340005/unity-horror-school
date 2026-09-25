@@ -13,7 +13,11 @@ public static class Game
     CancellationToken ct
   )
   {
-    using var parent = root.UseChild("Game");
+    var parent =
+      await Addressables
+        .InstantiateAsync("SchoolStage", root)
+        .WithCancellation(ct)
+        .ContinueWith(it => it.transform);
 
     var input = new InputActions();
     input.Enable();

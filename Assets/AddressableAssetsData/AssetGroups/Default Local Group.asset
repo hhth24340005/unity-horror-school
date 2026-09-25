@@ -20,6 +20,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2c67da6e12307475ea91fbfc35495599
+    m_Address: SchoolStage
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 324ebe1ad49284f249e8c09e0aaf2c26
     m_Address: SprintSound
     m_ReadOnly: 0
