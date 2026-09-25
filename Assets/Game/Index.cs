@@ -36,6 +36,12 @@ public static class Game
           .WithCancellation(ct)
           .ContinueWith(it => it.GetComponent<Enemy>());
 
+      var hud =
+        await Addressables
+          .InstantiateAsync("GameHud", stage.EnemySpawnPoint)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<GameHud>());
+
       // Keys
       await stage
         .KeySpawnPoints
@@ -50,7 +56,8 @@ public static class Game
         stage.AwaitExit(player.Hitbox, inventory),
         enemy.UseAnimation(),
         enemy.AwaitCatch(player.Hitbox),
-        enemy.UseFollower(player.transform)
+        enemy.UseFollower(player.transform),
+        hud.UseHud()
       )(ct);
     }
     finally
