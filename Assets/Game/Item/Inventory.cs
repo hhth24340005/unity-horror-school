@@ -33,6 +33,17 @@ public sealed class Inventory
     }
     _items.Remove(item);
   }
+
+  public bool TryRemoveItem(Type itemType)
+  {
+    var index = _items.FindIndex(it => it.GetType() == itemType);
+    if (index < 0)
+    {
+      return false;
+    }
+    _items.RemoveAt(index);
+    return true;
+  }
 }
 
 public interface IInventoryItem

@@ -26,41 +26,33 @@ public static class Game
     input.Enable();
     try
     {
-      var playerSpawnPoint =
-        stage.PlayerSpawnPoints[
-          Random.Range(0, stage.PlayerSpawnPoints.Count)
-        ];
       var player =
         await Addressables
-          .InstantiateAsync("Player", playerSpawnPoint)
+          .InstantiateAsync("Player", stage.PlayerSpawnPoint)
           .WithCancellation(ct)
           .ContinueWith(it => it.GetComponent<Player>());
 
       var inventory = Inventory.OfCapacity(5);
 
-      var enemySpawnPoint =
-        stage.EnemySpawnPoints[
-          Random.Range(0, stage.EnemySpawnPoints.Count)
-        ];
       var enemy =
         await Addressables
-          .InstantiateAsync("Enemy", enemySpawnPoint)
+          .InstantiateAsync("Enemy", stage.EnemySpawnPoint)
           .WithCancellation(ct)
           .ContinueWith(it => it.GetComponent<Enemy>());
-      _ =
-        await stage
-          .KeySpawnPoints
-            // shuffle
-          .Take(stage.RequiredKeys)
-          .Select(point =>
-            Addressables
-              .InstantiateAsync("Key", point)
-              .WithCancellation(ct)
-          ).ToImmutableArray();
+
+      // Keys
+      await stage
+        .KeySpawnPoints
+        .Select(point =>
+          Addressables
+            .InstantiateAsync("Key", point)
+            .WithCancellation(ct)
+        ).ToImmutableArray();
 
       await Tasks.Race(
         ct,
         player.UseControllerAsync(input.Player, inventory),
+        stage.AwaitExit(player.Hitbox, inventory),
         enemy.UseAnimation(),
         enemy.AwaitCatch(player.Hitbox),
         enemy.UseFollower(player.transform)

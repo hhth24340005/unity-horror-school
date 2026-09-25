@@ -1,5 +1,9 @@
 using System.Collections.Generic;
+using System.Linq;
+using Cysharp.Threading.Tasks.Linq;
+using Cysharp.Threading.Tasks.Triggers;
 using UnityEngine;
+using AsyncFn = System.Func<System.Threading.CancellationToken, Cysharp.Threading.Tasks.UniTask>;
 
 public sealed class Stage : MonoBehaviour
 {
@@ -13,13 +17,42 @@ public sealed class Stage : MonoBehaviour
   private List<Transform> keySpawnPoints;
 
   [SerializeField]
+  private Collider exitCollider;
+
+  [SerializeField]
   private int requiredKeys;
 
-  public IReadOnlyList<Transform> PlayerSpawnPoints => playerSpawnPoints;
+  public Transform PlayerSpawnPoint =>
+    playerSpawnPoints
+      .Shuffled()
+      .First();
 
-  public IReadOnlyList<Transform> EnemySpawnPoints => enemySpawnPoints;
+  public Transform EnemySpawnPoint =>
+    enemySpawnPoints
+      .Shuffled()
+      .First();
 
-  public IReadOnlyList<Transform> KeySpawnPoints => keySpawnPoints;
+  public IEnumerable<Transform> KeySpawnPoints =>
+    keySpawnPoints
+      .Shuffled()
+      .Take(requiredKeys);
 
-  public int RequiredKeys => requiredKeys;
+  public AsyncFn AwaitExit(Collider player, Inventory inventory) =>
+    async ct =>
+    {
+      foreach (var i in Enumerable.Range(0, requiredKeys))
+      {
+        while (true)
+        {
+          await exitCollider
+            .GetAsyncTriggerStayTrigger()
+            .FirstAsync(it => it == player, ct);
+          if (inventory.TryRemoveItem(typeof(KeyItem)))
+          {
+            break;
+          }
+        }
+        Debug.Log($"{i + 1}/{requiredKeys}");
+      }
+    };
 }
