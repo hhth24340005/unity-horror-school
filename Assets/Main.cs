@@ -34,6 +34,7 @@ internal static class Main
     finally
     {
       Object.Destroy(root.gameObject);
+      await UniTask.Yield(PlayerLoopTiming.FixedUpdate);
 #if  UNITY_EDITOR
       UnityEditor.EditorApplication.isPlaying = false;
 #endif
