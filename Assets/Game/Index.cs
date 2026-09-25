@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -45,6 +47,16 @@ public static class Game
           .InstantiateAsync("Enemy", enemySpawnPoint)
           .WithCancellation(ct)
           .ContinueWith(it => it.GetComponent<Enemy>());
+      _ =
+        await stage
+          .KeySpawnPoints
+            // shuffle
+          .Take(stage.RequiredKeys)
+          .Select(point =>
+            Addressables
+              .InstantiateAsync("Key", point)
+              .WithCancellation(ct)
+          ).ToImmutableArray();
 
       await Tasks.Race(
         ct,

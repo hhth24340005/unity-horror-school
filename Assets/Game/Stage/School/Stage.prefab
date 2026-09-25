@@ -400,6 +400,7 @@ MonoBehaviour:
   - {fileID: 709832822579069785}
   keySpawnPoints:
   - {fileID: 891319888798263500}
+  requiredKeys: 1
 --- !u!1001 &2754243948060325534
 PrefabInstance:
   m_ObjectHideFlags: 0
