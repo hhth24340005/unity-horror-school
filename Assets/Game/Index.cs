@@ -56,7 +56,7 @@ public static class Game
         stage.AwaitExit(player.Hitbox, inventory),
         enemy.UseAnimation(),
         enemy.AwaitCatch(player.Hitbox),
-        enemy.UseFollower(player.transform),
+        enemy.UseNavigatorAsync(player.transform),
         hud.UseHud()
       )(ct);
     }

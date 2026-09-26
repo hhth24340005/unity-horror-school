@@ -50,6 +50,16 @@ MonoBehaviour:
   animator: {fileID: 3172121883143334663}
   agent: {fileID: 5555177685976564738}
   catchCollision: {fileID: 7925750989853184692}
+  walkSpeed: 1.5
+  runSpeed: 3.5
+  wanderRadius: 10
+  wanderViewDistance: 5
+  wanderViewAngle: 120
+  chaseViewDistance: 15
+  chaseViewAngle: 360
+  eyeHeight: 1.6
+  targetHeight: 1
+  loseTime: 10
 --- !u!195 &5555177685976564738
 NavMeshAgent:
   m_ObjectHideFlags: 0
