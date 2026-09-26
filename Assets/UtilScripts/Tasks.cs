@@ -41,6 +41,25 @@ public static class Tasks
       }
     };
 
+  public static AsyncFn<R> Returns<R>(
+    this AsyncFn task,
+    R value
+  ) =>
+    async ct =>
+    {
+      await task(ct);
+      return value;
+    };
+
+  public static AsyncFn<R> Forever<R>(
+    this AsyncFn task
+  ) =>
+    async ct =>
+    {
+      await task(ct);
+      throw new InvalidOperationException("Task expected to never return.");
+    };
+
   public static UniTask SuspendCancellableCoroutine(
     CancellationToken ct,
     Action<Action> block

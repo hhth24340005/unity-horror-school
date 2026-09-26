@@ -7,8 +7,9 @@ using UnityEngine.InputSystem;
 
 public static class Game
 {
-  public static async UniTask PlayAsync(
+  public static async UniTask<Tasks.AsyncFn> PlayAsync(
     Transform root,
+    Tasks.AsyncFn transition,
     CancellationToken ct
   )
   {
@@ -52,14 +53,28 @@ public static class Game
             .WithCancellation(ct)
         ).ToImmutableArray();
 
-      await Tasks.Race(
-        player.UseControllerAsync(input.Player, inventory),
-        stage.AwaitExit(player.Hitbox, inventory),
-        enemy.UseAnimation(),
-        enemy.AwaitCatch(player.Hitbox),
-        enemy.UseNavigatorAsync(player.transform),
-        hud.UseHud()
+      await transition(ct);
+      var ending = await Tasks.Race(
+        player
+          .UseControllerAsync(input.Player, inventory)
+          .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>(),
+        stage
+          .AwaitExit(player.Hitbox, inventory)
+          .Returns((Tasks.AsyncFn<Tasks.AsyncFn>)GameClear),
+        enemy
+          .UseAnimation()
+          .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>(),
+        enemy
+          .AwaitCatch(player.Hitbox)
+          .Returns((Tasks.AsyncFn<Tasks.AsyncFn>)GameOver),
+        enemy
+          .UseNavigatorAsync(player.transform)
+          .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>(),
+        hud
+          .UseHud()
+          .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>()
       )(ct);
+      return await ending(ct);
     }
     finally
     {
@@ -205,4 +220,12 @@ public static class Game
       }
       // ReSharper disable once FunctionNeverReturns
     };
+
+  private static async UniTask<Tasks.AsyncFn> GameClear(
+    CancellationToken _
+  ) => _ => UniTask.CompletedTask;
+
+  private static async UniTask<Tasks.AsyncFn> GameOver(
+    CancellationToken _
+  ) => _ => UniTask.CompletedTask;
 }

@@ -5,8 +5,9 @@ using UnityEngine.AddressableAssets;
 
 public static class Title
 {
-  public static async UniTask PlayAsync(
+  public static async UniTask<Tasks.AsyncFn> PlayAsync(
     Transform root,
+    Tasks.AsyncFn transition,
     CancellationToken ct
   )
   {
@@ -16,6 +17,8 @@ public static class Title
         .InstantiateAsync("TitleView", parent)
         .WithCancellation(ct)
         .ContinueWith(it => it.GetComponent<TitleView>());
+    await transition(ct);
     await view.AwaitStart(ct);
+    return _ => UniTask.CompletedTask;
   }
 }
