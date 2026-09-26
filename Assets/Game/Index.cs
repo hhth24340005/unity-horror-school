@@ -1,0 +1,254 @@
+using System.Collections.Immutable;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.InputSystem;
+
+public static class Game
+{
+  public static async UniTask<Tasks.AsyncFn> PlayAsync(
+    Transform root,
+    Settings settings,
+    Tasks.AsyncFn transition,
+    CancellationToken ct
+  )
+  {
+    using var parent = root.UseChild("Game");
+    var stage =
+      await Addressables
+        .InstantiateAsync("SchoolStage", parent)
+        .WithCancellation(ct)
+        .ContinueWith(it => it.GetComponent<Stage>());
+
+    var input = new InputActions();
+    input.Enable();
+    try
+    {
+      var player =
+        await Addressables
+          .InstantiateAsync("Player", stage.PlayerSpawnPoint)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<Player>());
+
+      var inventory = Inventory.OfCapacity(5);
+
+      var enemy =
+        await Addressables
+          .InstantiateAsync("Enemy", stage.EnemySpawnPoint)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<Enemy>());
+
+      var hud =
+        await Addressables
+          .InstantiateAsync("GameHud", stage.EnemySpawnPoint)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<GameHud>());
+
+      // Keys
+      await stage
+        .KeySpawnPoints
+        .Select(point =>
+          Addressables
+            .InstantiateAsync("Key", point)
+            .WithCancellation(ct)
+        ).ToImmutableArray();
+
+      await transition(ct);
+      var ending = await Tasks.Race(
+        player
+          .UseControllerAsync(input.Player, inventory, settings)
+          .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>(),
+        stage
+          .AwaitExit(player.Hitbox, inventory)
+          .Returns(GameClear(root)),
+        enemy
+          .UseAnimation()
+          .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>(),
+        enemy
+          .AwaitCatch(player.Hitbox)
+          .Returns(GameOver(root)),
+        enemy
+          .UseNavigatorAsync(player.transform)
+          .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>(),
+        hud
+          .UseHud()
+          .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>()
+      )(ct);
+      return await ending(ct);
+    }
+    finally
+    {
+      input.Disable();
+    }
+  }
+
+  private static Tasks.AsyncFn UseControllerAsync(
+    this Player player,
+    InputActions.PlayerActions input,
+    Inventory inventory,
+    Settings settings
+  ) =>
+    async ct =>
+    {
+      while (true)
+      {
+        await Tasks.Race(
+          player.UseMovementAsync(input.Move, input.Sprint),
+          player.UseRotationAsync(input.Look, settings),
+          player.UseInteractorAsync(input.Interact, inventory)
+        )(ct);
+      }
+      // ReSharper disable once FunctionNeverReturns
+    };
+
+  private static Tasks.AsyncFn UseMovementAsync(
+    this Player player,
+    InputAction move,
+    InputAction sprint
+  ) =>
+    async ct =>
+    {
+      var walkSound =
+        await Addressables
+          .InstantiateAsync("WalkSound", player.transform)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<AudioSource>());
+      var sprintSound =
+        await Addressables
+          .InstantiateAsync("SprintSound", player.transform)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<AudioSource>());
+      try
+      {
+        while (true)
+        {
+          if (move.IsPressed())
+          {
+            var delta = move.ReadValue<Vector2>();
+            if (delta.y > 0 && sprint.IsPressed())
+            {
+              walkSound?.Stop();
+              sprintSound?.Play();
+              try
+              {
+                await player.SprintAsync(move, ct);
+              }
+              finally
+              {
+                sprintSound?.Stop();
+              }
+              walkSound?.Play();
+
+              continue;
+            }
+
+            player.TryMove(delta);
+            await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+          }
+          else if (player.TryMove(Vector2.zero))
+          {
+            await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+          }
+          else
+          {
+            walkSound?.Stop();
+            await move.AwaitPerformed(ct);
+            walkSound?.Play();
+          }
+        }
+      }
+      finally
+      {
+        walkSound?.Stop();
+      }
+    };
+
+  private static async UniTask SprintAsync(
+    this Player player,
+    InputAction move,
+    CancellationToken ct
+  )
+  {
+    player.SetSprintFov(true);
+    try
+    {
+      while (move.ReadValue<Vector2>() is { y: > 0 } delta)
+      {
+        player.TryMove(delta, sprinting: true);
+        await UniTask.Yield(PlayerLoopTiming.FixedUpdate, ct);
+      }
+    }
+    finally
+    {
+      player.SetSprintFov(false);
+    }
+  }
+
+  private static Tasks.AsyncFn UseRotationAsync(
+    this Player player,
+    InputAction input,
+    Settings settings
+  ) =>
+    async ct =>
+    {
+      try
+      {
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        while (true)
+        {
+          var mouseDelta =
+            await input.AwaitPressed<Vector2>(ct) * settings.MouseSensitivity;
+          player.LookAround(new Vector2(mouseDelta.x, -mouseDelta.y));
+        }
+      }
+      finally
+      {
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+      }
+    };
+
+  private static Tasks.AsyncFn UseInteractorAsync(
+    this Player player,
+    InputAction input,
+    Inventory inventory
+  ) =>
+    async ct =>
+    {
+      while (true)
+      {
+        await input.AwaitPerformed(ct);
+        await player.InteractItemOnSight(inventory, ct);
+      }
+      // ReSharper disable once FunctionNeverReturns
+    };
+
+  private static Tasks.AsyncFn<Tasks.AsyncFn> GameClear(
+    Transform root
+  ) =>
+    async ct =>
+    {
+      var view = await InstantiateEndingViewAsync(root, ct);
+      return await view.ShowGameClear()(ct);
+    };
+
+  private static Tasks.AsyncFn<Tasks.AsyncFn> GameOver(
+    Transform root
+  ) =>
+    async ct =>
+    {
+      var view = await InstantiateEndingViewAsync(root, ct);
+      return await view.ShowGameOver()(ct);
+    };
+
+  private static UniTask<EndingView> InstantiateEndingViewAsync(
+    Transform root,
+    CancellationToken ct
+  ) =>
+    Addressables
+      .InstantiateAsync("EndingView", root)
+      .WithCancellation(ct)
+      .ContinueWith(it => it.GetComponent<EndingView>());
+}
