@@ -46,8 +46,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b079c860be5b143f980cc03fcec376ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EndingView
-  overlay: {fileID: 3385447267103272394}
   image: {fileID: 507853427678905327}
+  overlay: {fileID: 3385447267103272394}
   gameClear: {fileID: 21300000, guid: 9708dcb30251040b7939d445f0a0c8a0, type: 3}
   gameOver: {fileID: 21300000, guid: 717942314e1cd418fae980fb6e602651, type: 3}
 --- !u!1 &4181852667554605866
@@ -205,10 +205,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 800, y: 600}
+  m_ReferenceResolution: {x: 1280, y: 720}
   m_ScreenMatchMode: 0
   m_MatchWidthOrHeight: 0
   m_PhysicalUnit: 3

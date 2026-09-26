@@ -9,6 +9,7 @@ public static class Game
 {
   public static async UniTask<Tasks.AsyncFn> PlayAsync(
     Transform root,
+    Settings settings,
     Tasks.AsyncFn transition,
     CancellationToken ct
   )
@@ -56,7 +57,7 @@ public static class Game
       await transition(ct);
       var ending = await Tasks.Race(
         player
-          .UseControllerAsync(input.Player, inventory)
+          .UseControllerAsync(input.Player, inventory, settings)
           .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>(),
         stage
           .AwaitExit(player.Hitbox, inventory)
@@ -85,7 +86,8 @@ public static class Game
   private static Tasks.AsyncFn UseControllerAsync(
     this Player player,
     InputActions.PlayerActions input,
-    Inventory inventory
+    Inventory inventory,
+    Settings settings
   ) =>
     async ct =>
     {
@@ -93,7 +95,7 @@ public static class Game
       {
         await Tasks.Race(
           player.UseMovementAsync(input.Move, input.Sprint),
-          player.UseRotationAsync(input.Look),
+          player.UseRotationAsync(input.Look, settings),
           player.UseInteractorAsync(input.Interact, inventory)
         )(ct);
       }
@@ -185,7 +187,8 @@ public static class Game
 
   private static Tasks.AsyncFn UseRotationAsync(
     this Player player,
-    InputAction input
+    InputAction input,
+    Settings settings
   ) =>
     async ct =>
     {
@@ -195,7 +198,8 @@ public static class Game
         Cursor.lockState = CursorLockMode.Locked;
         while (true)
         {
-          var mouseDelta = await input.AwaitPressed<Vector2>(ct);
+          var mouseDelta =
+            await input.AwaitPressed<Vector2>(ct) * settings.MouseSensitivity;
           player.LookAround(new Vector2(mouseDelta.x, -mouseDelta.y));
         }
       }

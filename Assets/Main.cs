@@ -11,13 +11,15 @@ internal static class Main
     CancellationToken ct
   )
   {
+    var settings = new Settings();
+    AudioListener.volume = settings.SeVolume;
     Tasks.AsyncFn transition = _ => UniTask.CompletedTask;
     while (true)
     {
       var gameTransition =
-        await Title.PlayAsync(parent, transition, ct);
+        await Title.PlayAsync(parent, settings, transition, ct);
       transition =
-        await Game.PlayAsync(parent, gameTransition, ct);
+        await Game.PlayAsync(parent, settings, gameTransition, ct);
     }
     // ReSharper disable once FunctionNeverReturns
   }

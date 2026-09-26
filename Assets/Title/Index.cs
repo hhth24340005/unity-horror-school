@@ -7,6 +7,7 @@ public static class Title
 {
   public static async UniTask<Tasks.AsyncFn> PlayAsync(
     Transform root,
+    Settings settings,
     Tasks.AsyncFn transition,
     CancellationToken ct
   )
@@ -18,7 +19,24 @@ public static class Title
         .WithCancellation(ct)
         .ContinueWith(it => it.GetComponent<TitleView>());
     await transition(ct);
-    await view.AwaitStart(ct);
+    while (await view.AwaitChoice(ct) == TitleView.Choice.Option)
+    {
+      using var optionParent = parent.UseChild("Option");
+      var option =
+        await Addressables
+          .InstantiateAsync("OptionView", optionParent)
+          .WithCancellation(ct)
+          .ContinueWith(it => it.GetComponent<OptionView>());
+      view.SetMenuVisible(false);
+      try
+      {
+        await option.EditAsync(settings, ct);
+      }
+      finally
+      {
+        view.SetMenuVisible(true);
+      }
+    }
     return _ => UniTask.CompletedTask;
   }
 }
