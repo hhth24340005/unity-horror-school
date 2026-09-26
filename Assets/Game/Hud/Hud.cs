@@ -17,6 +17,7 @@ public sealed class GameHud : MonoBehaviour
       try
       {
         await UniTask.WhenAll(
+          UniTask.Never(ct),
           UseControlGuide()(ct)
         );
       }
@@ -36,12 +37,12 @@ public sealed class GameHud : MonoBehaviour
       controlGuide.interactable = true;
       try
       {
-        await UniTask.Delay(5000, cancellationToken: ct);
+        await UniTask.Delay(3000, cancellationToken: ct);
         await DOTween.To(
           () => controlGuide.alpha,
           it => controlGuide.alpha = it,
           0,
-          3f
+          1.5f
         ).WithCancellation(ct);
       }
       finally
