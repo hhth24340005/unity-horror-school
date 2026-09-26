@@ -12,9 +12,10 @@ public static class Game
     CancellationToken ct
   )
   {
+    using var parent = root.UseChild("Game");
     var stage =
       await Addressables
-        .InstantiateAsync("SchoolStage", root)
+        .InstantiateAsync("SchoolStage", parent)
         .WithCancellation(ct)
         .ContinueWith(it => it.GetComponent<Stage>());
 

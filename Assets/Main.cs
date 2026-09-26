@@ -11,8 +11,12 @@ internal static class Main
     CancellationToken ct
   )
   {
-    await Title.PlayAsync(parent, ct);
-    await Game.PlayAsync(parent, ct);
+    while (true)
+    {
+      await Title.PlayAsync(parent, ct);
+      await Game.PlayAsync(parent, ct);
+    }
+    // ReSharper disable once FunctionNeverReturns
   }
 
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
