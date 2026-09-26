@@ -60,13 +60,13 @@ public static class Game
           .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>(),
         stage
           .AwaitExit(player.Hitbox, inventory)
-          .Returns((Tasks.AsyncFn<Tasks.AsyncFn>)GameClear),
+          .Returns(GameClear(root)),
         enemy
           .UseAnimation()
           .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>(),
         enemy
           .AwaitCatch(player.Hitbox)
-          .Returns((Tasks.AsyncFn<Tasks.AsyncFn>)GameOver),
+          .Returns(GameOver(root)),
         enemy
           .UseNavigatorAsync(player.transform)
           .Forever<Tasks.AsyncFn<Tasks.AsyncFn>>(),
@@ -221,11 +221,30 @@ public static class Game
       // ReSharper disable once FunctionNeverReturns
     };
 
-  private static async UniTask<Tasks.AsyncFn> GameClear(
-    CancellationToken _
-  ) => _ => UniTask.CompletedTask;
+  private static Tasks.AsyncFn<Tasks.AsyncFn> GameClear(
+    Transform root
+  ) =>
+    async ct =>
+    {
+      var view = await InstantiateEndingViewAsync(root, ct);
+      return await view.ShowGameClear()(ct);
+    };
 
-  private static async UniTask<Tasks.AsyncFn> GameOver(
-    CancellationToken _
-  ) => _ => UniTask.CompletedTask;
+  private static Tasks.AsyncFn<Tasks.AsyncFn> GameOver(
+    Transform root
+  ) =>
+    async ct =>
+    {
+      var view = await InstantiateEndingViewAsync(root, ct);
+      return await view.ShowGameOver()(ct);
+    };
+
+  private static UniTask<EndingView> InstantiateEndingViewAsync(
+    Transform root,
+    CancellationToken ct
+  ) =>
+    Addressables
+      .InstantiateAsync("EndingView", root)
+      .WithCancellation(ct)
+      .ContinueWith(it => it.GetComponent<EndingView>());
 }

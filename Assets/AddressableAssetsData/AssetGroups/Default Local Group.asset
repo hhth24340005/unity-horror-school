@@ -40,6 +40,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a092de556e5074899ab5953df750e3d7
+    m_Address: EndingView
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: b91050c3034be4c729d67882c433ccdc
     m_Address: WalkSound
     m_ReadOnly: 0
